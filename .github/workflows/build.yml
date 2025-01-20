@@ -8,28 +8,29 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+      # Step 1: Checkout repository
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      # Cache Buildozer global directory
+      # Step 2: Cache Buildozer global directory
       - name: Cache Buildozer global directory
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .buildozer_global
           key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
-      # Cache Buildozer local directory
+      # Step 3: Cache Buildozer local directory
       - name: Cache Buildozer local directory
         id: get-date
         run: echo "date=$(date -u '+%Y%m%d')" >> $GITHUB_ENV
 
       - name: Cache Buildozer local directory
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .buildozer
           key: ${{ runner.os }}-${{ env.date }}-${{ hashFiles('buildozer.spec') }}
 
-      # Build with Buildozer
+      # Step 4: Build with Buildozer
       - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
@@ -37,10 +38,9 @@ jobs:
           command: buildozer android debug
           buildozer_version: stable
 
-      # Upload artifacts
+      # Step 5: Upload artifacts
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package
           path: ${{ steps.buildozer.outputs.filename }}
-
