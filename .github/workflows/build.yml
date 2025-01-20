@@ -1,42 +1,36 @@
-name: CI
+name: Build and push python code to gcp with github actions
 on:
   push:
-    branches: [ main ]
-
+    branches:
+      - main
 jobs:
-  build:
-    runs-on: ubuntu-20.04
-
+  build_push_grc:
+    name: Build and push to gcr
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: learning_cicd
+      PROJECT_ID: personal-370316
     steps:
-uses: actions/checkout@v2
-
-      used to cache dependencies with a timeout
-name: Get Date
-        id: get-date
-        run: |
-          echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
-        shell: bash
-
-name: Cache Buildozer global directory
-        uses: actions/cache@v2
+      - name: Checkoutstep
+        uses: actions/checkout@v2
+      - uses: google-github-actions/setup-gcloud@master
         with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }} # Replace with your path
+          service_account_key: ${{ secrets.SERVICE_ACCOUNT_KEY}}
+          project_id: ${{ env.PROJECT_ID }}
+          export_default_credentials: true
 
-uses: actions/cache@v2
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
+      - name: Build Docker Image
+        run: docker build -t $IMAGE_NAME:latest .
 
-name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: stable
+      - name: Configure Docker Client
+        run: |-
+          gcloud auth configure-docker --quiet
 
-name: Upload artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: package
-          path: ${{ steps.buildozer.outputs.filename }}
+      - name: Push Docker Image to Container Registry (GCR)
+        env:
+          GIT_TAG: v0.1.0
+        run: |-
+          docker tag $IMAGE_NAME:latest gcr.io/$PROJECT_ID/$IMAGE_NAME:latest
+          docker tag $IMAGE_NAME:latest gcr.io/$PROJECT_ID/$IMAGE_NAME:$GIT_TAG
+          docker push gcr.io/$PROJECT_ID/$IMAGE_NAME:latest
+          docker push gcr.io/$PROJECT_ID/$IMAGE_NAME:$GIT_TAG
